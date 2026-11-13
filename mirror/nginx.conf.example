@@ -1,0 +1,72 @@
+# L4D2 工坊镜像 · Nginx 版
+#
+# 适用：有国内/境外 VPS 的玩家。把 Steam CDN 套到自己的域名下，
+#      顺便做磁盘缓存 —— 群友反复要同一张图时，第二次起就是本地带宽。
+#
+# 用法：
+#   1. 把本文件内容放进 http { } 里的 server { } 中；
+#   2. 修改 server_name 与证书路径；
+#   3. mkdir -p /var/cache/nginx/l4d2 && nginx -t && nginx -s reload
+#   4. 插件配置里加：
+#      我的镜像|https://mirror.example.com/l4d2/cdn/{path}
+#
+# 注意：只反代 CDN。steamcommunity.com 的页面反代需要 sub_filter 改写，
+#      不建议在生产环境做（容易把登录态也代理出去）。
+
+proxy_cache_path /var/cache/nginx/l4d2
+                 levels=1:2
+                 keys_zone=l4d2_cache:100m
+                 max_size=20g
+                 inactive=30d
+                 use_temp_path=off;
+
+server {
+    listen 443 ssl http2;
+    server_name mirror.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/mirror.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mirror.example.com/privkey.pem;
+
+    # 断点续传 / 分片下载：不要缓冲整个文件
+    location /l4d2/cdn/ {
+        proxy_pass https://cdn.steamusercontent.com/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              cdn.steamusercontent.com;
+        proxy_set_header Range             $http_range;
+        proxy_set_header If-Range          $http_if_range;
+        proxy_set_header Accept-Encoding   "";
+        proxy_set_header User-Agent        "l4d2-workshop-mirror/1.0";
+
+        proxy_ssl_server_name on;
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        # 缓存大文件。
+        # 注意：不要缓存 206 —— Range 响应按 URI 缓存会污染后续请求，
+        # 带 Range 的请求直接绕过缓存，只缓存完整的 200。
+        proxy_cache l4d2_cache;
+        proxy_cache_key "$uri$is_args$args";
+        proxy_cache_valid 200 7d;
+        proxy_cache_bypass $http_range;
+        proxy_no_cache $http_range;
+        proxy_cache_lock on;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        add_header X-Cache-Status $upstream_cache_status always;
+
+        # 让群里的浏览器/下载器可以直接跨域取
+        add_header Access-Control-Allow-Origin  "*" always;
+        add_header Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges" always;
+        add_header Accept-Ranges "bytes" always;
+
+        # 地图文件都不小，超时给足
+        proxy_connect_timeout 15s;
+        proxy_read_timeout    300s;
+        proxy_send_timeout    300s;
+    }
+
+    location = /l4d2/health {
+        default_type application/json;
+        return 200 '{"ok":true,"service":"l4d2-workshop-mirror"}';
+    }
+}

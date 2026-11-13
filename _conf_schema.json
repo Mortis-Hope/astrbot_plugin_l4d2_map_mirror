@@ -1,0 +1,417 @@
+{
+  "enabled": {
+    "description": "启用插件",
+    "type": "bool",
+    "default": true
+  },
+  "group_only": {
+    "description": "只在群聊生效",
+    "hint": "关闭后私聊发链接也会解析",
+    "type": "bool",
+    "default": true
+  },
+  "whitelist": {
+    "description": "会话白名单",
+    "hint": "填写会话 UMO（如 aiocqhttp:GroupMessage:123456）。留空表示不限；一旦填写，只处理名单内的会话。",
+    "type": "list",
+    "default": []
+  },
+  "blacklist": {
+    "description": "会话黑名单",
+    "hint": "名单内的会话不解析",
+    "type": "list",
+    "default": []
+  },
+  "video_platforms": {
+    "description": "启用的视频平台",
+    "hint": "可选：bilibili、douyin、youtube",
+    "type": "list",
+    "default": [
+      "bilibili",
+      "douyin",
+      "youtube"
+    ]
+  },
+  "max_videos_per_message": {
+    "description": "单条消息最多解析几个视频",
+    "type": "int",
+    "slider": {
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    "default": 2
+  },
+  "max_items_per_message": {
+    "description": "单次最多回复几张地图",
+    "hint": "防止一条合集视频刷屏",
+    "type": "int",
+    "slider": {
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    "default": 2
+  },
+  "handle_direct_workshop": {
+    "description": "直接发工坊链接也解析",
+    "hint": "群友不发视频、直接丢 Steam 工坊链接时，同样回复直链与镜像",
+    "type": "bool",
+    "default": true
+  },
+  "hint_when_no_link": {
+    "description": "没找到链接时提示",
+    "hint": "视频标题/简介像求生之路2、但简介里没有工坊链接时，回一句提示。可能造成噪音，默认关闭。",
+    "type": "bool",
+    "default": false
+  },
+  "mention_sender": {
+    "description": "回复时 @ 分享者",
+    "type": "bool",
+    "default": false
+  },
+  "use_zhrradiant": {
+    "description": "启用竹烨工坊镜像",
+    "hint": "zhrradiant.com 的工坊解析接口：可补全直链、读取地图依赖。国内可访问。",
+    "type": "bool",
+    "default": true
+  },
+  "include_dependencies": {
+    "description": "列出地图依赖",
+    "hint": "很多三方图需要额外订阅材质包/前置图，不装会缺材质或报错",
+    "type": "bool",
+    "default": true
+  },
+  "include_steam_page": {
+    "description": "附带工坊页面链接",
+    "type": "bool",
+    "default": true
+  },
+  "include_steamcmd": {
+    "description": "附带 steamcmd 命令",
+    "hint": "给开服玩家用：steamcmd +login anonymous +workshop_download_item 550 <id> +quit",
+    "type": "bool",
+    "default": true
+  },
+  "verify_links": {
+    "description": "实测直链可用性",
+    "hint": "回复前发一个 4 字节 Range 请求，顺带校验 VPK 文件头。会多花 0.3~2 秒，但能避免给出死链。",
+    "type": "bool",
+    "default": true
+  },
+  "verify_timeout": {
+    "description": "链路探测超时（秒）",
+    "type": "int",
+    "slider": {
+      "min": 3,
+      "max": 60,
+      "step": 1
+    },
+    "default": 10
+  },
+  "custom_mirrors": {
+    "description": "自定义镜像",
+    "hint": "每行一条，格式：名称|链接模板。占位符：{id} 工坊ID、{url} 官方直链、{url_encoded} 直链URL编码、{host} 直链域名、{path} 直链路径、{workshop_url}、{filename}、{title}。例：我的反代|https://mirror.example.com/steam/{path}",
+    "type": "list",
+    "default": []
+  },
+  "bilibili_cookie": {
+    "description": "B 站 Cookie",
+    "hint": "可选。粘贴一行 Cookie，如 SESSDATA=...; bili_jct=...; DedeUserID=...。遇到 B 站 412/风控时用，建议小号。",
+    "type": "string",
+    "default": ""
+  },
+  "bilibili_proxy": {
+    "description": "B 站专用代理",
+    "hint": "只给 B 站/ b23.tv 请求用，例如 http://127.0.0.1:7890。留空则用全局 proxy；全局也空就直连。",
+    "type": "string",
+    "default": ""
+  },
+  "proxy": {
+    "description": "HTTP 代理",
+    "hint": "如 http://127.0.0.1:7890。留空直连。给访问不了 Steam CDN 的机器用。",
+    "type": "string",
+    "default": ""
+  },
+  "request_timeout": {
+    "description": "普通请求超时（秒）",
+    "type": "int",
+    "slider": {
+      "min": 5,
+      "max": 120,
+      "step": 5
+    },
+    "default": 20
+  },
+  "dedupe_ttl_hours": {
+    "description": "同一张图去重时长（小时）",
+    "hint": "同一会话里，同一张图在此时长内只回复一次。设为 0 关闭去重。",
+    "type": "int",
+    "slider": {
+      "min": 0,
+      "max": 168,
+      "step": 1
+    },
+    "default": 12
+  },
+  "auto_cache": {
+    "description": "自动缓存地图到本地",
+    "hint": "机器人后台把 vpk 下载到 plugin_data/astrbot_plugin_l4d2_map_mirror/cache，开服玩家可直接取用。默认关闭。",
+    "type": "bool",
+    "default": false
+  },
+  "cache_max_mb": {
+    "description": "缓存体积上限（MB）",
+    "hint": "超过这个大小的地图不自动下载",
+    "type": "int",
+    "slider": {
+      "min": 50,
+      "max": 20480,
+      "step": 50
+    },
+    "default": 800
+  },
+  "cache_cleanup_days": {
+    "description": "缓存保留天数",
+    "hint": "启动时清理超过该天数的缓存文件，0 表示不清理",
+    "type": "int",
+    "slider": {
+      "min": 0,
+      "max": 365,
+      "step": 1
+    },
+    "default": 7
+  },
+  "steamcmd_path": {
+    "description": "steamcmd 路径",
+    "hint": "可选。填写 steamcmd.exe 的绝对路径后，缓存优先走官方 steamcmd（CDN 被墙时更稳）。例如 E:\\steamcmd\\steamcmd.exe",
+    "type": "string",
+    "default": ""
+  },
+  "public_base_url": {
+    "description": "缓存文件的公开访问前缀",
+    "hint": "可选。用 nginx/caddy 把 cache 目录映射成静态站点后填写，例如 https://mirror.example.com/l4d2。填了之后回复里会带上\"机器人镜像\"链接。",
+    "type": "string",
+    "default": ""
+  },
+  "send_file_to_group": {
+    "description": "把地图打包发群文件/私聊",
+    "hint": "开启后，机器人下载 vpk → 压成 7z（没有 7z 就 zip）→ 用 OneBot 的 upload_group_file 发到当前群。需要协议端支持（NapCat / SnowLuma 等），且机器人有上传权限。",
+    "type": "bool",
+    "default": true
+  },
+  "send_file_max_mb": {
+    "description": "传群文件的体积上限（MB）",
+    "hint": "超过这个大小的地图不传，只发链接。QQ 群文件上限因群等级而异，别设太大。",
+    "type": "int",
+    "slider": {
+      "min": 10,
+      "max": 4096,
+      "step": 10
+    },
+    "default": 1024
+  },
+  "group_file_folder": {
+    "description": "上传到哪个群文件夹",
+    "hint": "可选。留空表示传到群文件根目录；填了会作为 folder 参数传给协议端（部分协议端要求文件夹已存在）。",
+    "type": "string",
+    "default": ""
+  },
+  "upload_timeout": {
+    "description": "上传超时（秒）",
+    "hint": "大文件上传慢，超时后放弃并提示。默认 900 秒",
+    "type": "int",
+    "slider": {
+      "min": 30,
+      "max": 3600,
+      "step": 30
+    },
+    "default": 900
+  },
+  "upload_notify": {
+    "description": "上传结果发消息通知",
+    "hint": "上传成功/失败后，在群里补一条结果消息",
+    "type": "bool",
+    "default": true
+  },
+  "require_at": {
+    "description": "自动模式必须 @机器人",
+    "hint": "仅在 auto_link_enabled 打开时生效；现在默认走 /发送地图 命令。",
+    "type": "bool",
+    "default": true
+  },
+  "auto_link_enabled": {
+    "description": "恢复“@机器人 + 链接”自动处理",
+    "hint": "默认关闭，第一阶段走 /发送地图。打开后群里 @机器人 发链接也会自动下载，不需要命令。",
+    "type": "bool",
+    "default": false
+  },
+  "folder_auto_create": {
+    "description": "自动创建群文件夹",
+    "hint": "指定/设置的群文件夹不存在时，尝试调用 OneBot 创建；失败就发到根目录并提示。",
+    "type": "bool",
+    "default": true
+  },
+  "miniprogram_enabled": {
+    "description": "解析视频小程序卡片",
+    "hint": "开启后，引用 B 站/抖音等视频小程序卡片再发 /解析，会从卡片里取视频链接。默认开启。",
+    "type": "bool",
+    "default": true
+  },
+  "miniprogram_require_keyword": {
+    "description": "卡片必须命中关键词",
+    "hint": "只解析标题/简介里包含关键词的卡片，防止群友随便发个卡片就下载。",
+    "type": "bool",
+    "default": true
+  },
+  "miniprogram_keywords": {
+    "description": "卡片关键词",
+    "hint": "命中任意一个才解析。默认：求生之路、l4d2、left 4 dead、求2、三方图、三方地图。",
+    "type": "list",
+    "default": [
+      "求生之路",
+      "l4d2",
+      "left 4 dead",
+      "求2",
+      "三方图",
+      "三方地图"
+    ]
+  },
+  "miniprogram_allowed_sources": {
+    "description": "允许的卡片来源",
+    "hint": "留空不限制；填了就要求卡片文本里出现其中之一，例如 哔哩哔哩、抖音、YouTube。",
+    "type": "list",
+    "default": []
+  },
+  "miniprogram_recent_seconds": {
+    "description": "最近卡片有效时间（秒）",
+    "hint": "发完视频卡片后，在这个时间内直接发 /解析 也能用；0 表示关闭“最近卡片”缓存。默认 600 秒。",
+    "type": "int",
+    "default": 600
+  },
+  "search_enabled": {
+    "description": "启用 /搜索地图 工坊搜索",
+    "hint": "按地图名搜索并返回一张结果图，方便视频简介没有链接时手动找图。",
+    "type": "bool",
+    "default": true
+  },
+  "search_results": {
+    "description": "搜索结果数量",
+    "hint": "一张图里显示几个结果，1~6，默认 6。",
+    "type": "int",
+    "default": 6
+  },
+  "seven_zip_path": {
+    "description": "7z.exe 路径",
+    "hint": "可选。留空会自动找 PATH、C:\\Program Files\\7-Zip\\7z.exe 等；找不到就用 zip 打包。",
+    "type": "string",
+    "default": ""
+  },
+  "archive_level": {
+    "description": "压缩等级",
+    "hint": "1=最快，9=最小。默认 3，700MB 的图几十秒。",
+    "type": "int",
+    "slider": {
+      "min": 1,
+      "max": 9,
+      "step": 1
+    },
+    "default": 3
+  },
+  "archive_ttl_hours": {
+    "description": "待部署压缩包保留时长（小时）",
+    "hint": "超过这个时间还没上传服务器就清理，0 表示不清理",
+    "type": "int",
+    "slider": {
+      "min": 0,
+      "max": 720,
+      "step": 6
+    },
+    "default": 72
+  },
+  "upload_permission": {
+    "description": "谁能上传地图到服务器",
+    "hint": "owner_admin=群主+管理员，owner=仅群主",
+    "type": "string",
+    "options": [
+      "owner_admin",
+      "owner"
+    ],
+    "labels": [
+      "群主 + 管理员",
+      "仅群主"
+    ],
+    "default": "owner_admin"
+  },
+  "allow_private_upload": {
+    "description": "允许私聊上传地图",
+    "hint": "私聊发「上传地图」也能传到管理端，方便自己测试；公网机器人建议关闭。",
+    "type": "bool",
+    "default": true
+  },
+  "panel_enabled": {
+    "description": "允许群主上传地图到管理端",
+    "hint": "开启并填好地址/token 后，群主/管理员 @机器人 发「上传地图 [工坊ID]」，机器人会把压缩包传到 L4D2 Manager 的 maps 目录。管理端需 v1.14+。",
+    "type": "bool",
+    "default": false
+  },
+  "panel_url": {
+    "description": "管理端地址",
+    "hint": "例如 http://127.0.0.1:5090（同机）或 http://192.168.1.50:5090（局域网），不要带 #/map-upload",
+    "type": "string",
+    "default": ""
+  },
+  "panel_token": {
+    "description": "管理端密码或授权码",
+    "hint": "面板登录密码，或「授权码」页生成的授权码。建议用可撤销、有期限的 admin 授权码，不要填主密码。",
+    "type": "string",
+    "default": ""
+  },
+  "panel_after_upload": {
+    "description": "上传成功后做什么",
+    "hint": "hot_reload=自动热重载地图；none=只上传，手动去面板点热重载。热重载需要 admin 授权码。",
+    "type": "string",
+    "options": [
+      "hot_reload",
+      "none"
+    ],
+    "labels": [
+      "上传后热重载",
+      "只上传"
+    ],
+    "default": "hot_reload"
+  },
+  "panel_concurrency": {
+    "description": "上传分片并发数",
+    "hint": "管理端按 5MB 分片接收，默认 3 并发。网络差就调小",
+    "type": "int",
+    "slider": {
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    "default": 3
+  },
+  "panel_timeout": {
+    "description": "管理端请求超时（秒）",
+    "hint": "普通接口超时；上传合并会自动放宽",
+    "type": "int",
+    "slider": {
+      "min": 15,
+      "max": 1800,
+      "step": 15
+    },
+    "default": 120
+  },
+  "panel_max_mb": {
+    "description": "部署体积上限（MB）",
+    "hint": "超过这个大小的压缩包不上传，群里会提示",
+    "type": "int",
+    "slider": {
+      "min": 1,
+      "max": 8192,
+      "step": 10
+    },
+    "default": 1024
+  }
+}
