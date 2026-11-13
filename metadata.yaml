@@ -2,16 +2,17 @@ name: astrbot_plugin_l4d2_map_mirror
 display_name: 求生之路2地图镜像助手
 desc: 群里 /解析 发 L4D2 视频、工坊链接或引用视频小程序卡片，自动下载并压成 7z 发到指定群文件夹（支持合集/必需分包）；群主/管理员再用 /上传地图 传到 L4D2 Manager 管理端。
 help: |
-  /解析 <视频/工坊链接> [群文件夹]   下载并发群文件
-  /解析 （引用视频小程序卡片）        从卡片里取链接
-  /上传地图 [序号/文件名/工坊ID]  从群文件夹选压缩包上传
-  /解析 设置群文件夹 <名称>          设置本群默认文件夹
-  /解析 状态                         检查接口、7z、管理端、文件夹
-  /解析 只看 <链接或ID>              只解析，不发文件
-  /搜索地图 <地图名>                     搜索工坊并返回结果图
-  /换一批                                同一关键词看下一批
+  /解析 <链接> [文件夹]
+  /解析（引用/最近链接）
+  /上传地图 [序号/文件名/ID]
+  /设置群文件夹 <名称>
+  /解析 状态
+  /解析 只看 <链接/ID>
+  /搜索地图 <地图名>
+  /换一批
 version: 1.11.8
 author: ATRI
+repo: https://github.com/Mortis-Hope/astrbot_plugin_l4d2_map_mirror
 astrbot_version: ">=4.24.0"
 support_platforms:
   - aiocqhttp
