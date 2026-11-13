@@ -433,5 +433,9 @@ astrbot_plugin_l4d2_map_mirror/
 - 抖音接口无官方文档，改版后可能失效（会静默跳过）。
 - YouTube 需要 `yt-dlp` 才能读简介。
 - 群文件上传依赖 OneBot `upload_group_file`；官方 QQ 机器人（qq_official）不支持。
-- 管理端只对接了上传接口，不自动热重载/切图。
+- 管理端支持上传 + 可选热重载；不会自动切图/改战役。
 - 管理端 UI 虽接受 7z，但面板侧是否自动解包取决于它的版本；若上传后没图，先传 vpk 验证。
+
+## License
+
+MIT License，详见 [LICENSE](LICENSE)。
