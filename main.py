@@ -174,6 +174,8 @@ class L4D2MapMirrorPlugin(Star):
         self._panel_tasks: set[asyncio.Task] = set()
         self._recent_cards: dict[str, list[tuple[float, Any]]] = {}
         self._search_state: dict[str, tuple[str, int, set[int], float]] = {}
+        self._upload_choices: dict[str, tuple[float, str, list[dict[str, Any]], str]] = {}
+        self._search_choices: dict[str, tuple[float, str, list[Any], str]] = {}
         self.dedupe = DedupeStore(self.settings.dedupe_ttl_hours * 3600)
 
     # ------------------------------------------------------------ 生命周期
@@ -283,6 +285,8 @@ class L4D2MapMirrorPlugin(Star):
         ctx = analyze_message(event.get_messages(), event.message_str)
         if not self._is_command(ctx.text):
             self._remember_card(event, ctx)
+        async for result in self._selection_results(event, ctx):
+            yield result
         # 第一段默认走 /解析 命令；auto_link_enabled 才恢复“@机器人 + 链接”自动处理
         if not self.settings.auto_link_enabled:
             return
@@ -544,11 +548,18 @@ class L4D2MapMirrorPlugin(Star):
             if not items:
                 yield event.plain_result(f"没搜到「{query}」相关地图，换个关键词试试。")
                 return
-            self._search_state[self._card_key(event)] = (
+            key = self._card_key(event)
+            self._search_state[key] = (
                 query,
                 1,
                 {item.item_id for item in items},
                 time.time(),
+            )
+            self._search_choices[key] = (
+                time.time(),
+                str(event.get_sender_id()),
+                list(items),
+                query,
             )
             path = await self.search_service.render(
                 items, self.search_dir, query, total, page=1
@@ -586,6 +597,12 @@ class L4D2MapMirrorPlugin(Star):
                 return
             seen.update(item.item_id for item in fresh)
             self._search_state[key] = (query, next_page, seen, time.time())
+            self._search_choices[key] = (
+                time.time(),
+                str(event.get_sender_id()),
+                list(fresh),
+                query,
+            )
             path = await self.search_service.render(
                 fresh, self.search_dir, query, total, page=next_page
             )
@@ -787,7 +804,13 @@ class L4D2MapMirrorPlugin(Star):
             for index, item in enumerate(files, start=1):
                 size = int(item.get("file_size") or 0)
                 lines.append(f"{index}. {item.get('file_name')}（{human_size(size)}）")
-            lines.append("发送 /上传地图 <序号> 或 /上传地图 <文件名片段> 上传。")
+            lines.append("直接回复序号，或 /上传地图 <序号/文件名片段> 上传。")
+            self._upload_choices[self._card_key(event)] = (
+                time.time(),
+                str(event.get_sender_id()),
+                files,
+                label,
+            )
             yield event.plain_result("\n".join(lines))
             return
 
@@ -967,6 +990,7 @@ class L4D2MapMirrorPlugin(Star):
             lines.append(f"· 传群文件：开（≤{self.settings.send_file_max_mb}MB）")
         else:
             lines.append("· 传群文件：关")
+        lines.append(f"· 自动上传管理端：{'开' if self.settings.auto_panel_upload else '关'}")
         lines.append(f"· 去重：{self.settings.dedupe_ttl_hours} 小时")
         lines.append(f"· B站 Cookie：{'已设置' if self.settings.bilibili_cookie else '未设置'}")
         lines.append(
@@ -1066,6 +1090,69 @@ class L4D2MapMirrorPlugin(Star):
             if self._pick_card_video(card)[0]:
                 return card
         return fresh[-1][1]
+
+    async def _selection_results(self, event: AstrMessageEvent, ctx) -> AsyncIterator:
+        """纯数字选择：/上传地图 列表或 /搜索地图 结果图之后直接回复序号。"""
+        text = (ctx.text or "").strip()
+        if not text.isdigit() or len(text) > 2:
+            return
+        index = int(text)
+        if index <= 0:
+            return
+        key = self._card_key(event)
+        sender = str(event.get_sender_id())
+        now = time.time()
+        ttl = 300
+
+        upload = self._upload_choices.get(key)
+        if (
+            upload
+            and now - upload[0] <= ttl
+            and upload[1] == sender
+            and index <= len(upload[2])
+        ):
+            _, _, files, label = upload
+            self._upload_choices.pop(key, None)
+            if event.is_private_chat():
+                yield event.plain_result("私聊不能上传群文件，请到群里操作。")
+                return
+            group_id = str(event.get_group_id() or "")
+            file = files[index - 1]
+            size = int(file.get("file_size") or 0)
+            if size and size > self.settings.panel_max_mb * 1024 * 1024:
+                yield event.plain_result(
+                    f"「{file.get('file_name')}」{human_size(size)} 超过管理端上限 "
+                    f"{self.settings.panel_max_mb}MB。"
+                )
+                return
+            try:
+                path = await self._ensure_group_archive(event, group_id, file)
+            except Exception as exc:  # noqa: BLE001
+                yield event.plain_result(f"从群文件取压缩包失败：{exc}")
+                return
+            record = PendingMap(
+                group_id=group_id,
+                item_id=0,
+                title=Path(str(file.get("file_name") or path.name)).stem,
+                archive_path=str(path),
+                fmt=path.suffix.lstrip(".").lower(),
+                size=path.stat().st_size,
+            )
+            async for result in self._start_panel_upload(event, record, path):
+                yield result
+            return
+
+        choices = self._search_choices.get(key)
+        if (
+            choices
+            and now - choices[0] <= ttl
+            and choices[1] == sender
+            and index <= len(choices[2])
+        ):
+            item = choices[2][index - 1]
+            self._search_choices.pop(key, None)
+            async for result in self.cmd_send_map(event, GreedyStr(str(item.item_id))):
+                yield result
 
     def _pick_card_video(self, ctx) -> tuple[str | None, str]:
         """从最近消息里挑视频链接；卡片受关键词/来源限制，普通文字链接直接放行。"""
@@ -1239,8 +1326,9 @@ class L4D2MapMirrorPlugin(Star):
                 )
                 return
 
+            record: PendingMap | None = None
             if self.pending is not None:
-                self.pending.add(
+                record = self.pending.add(
                     group_id=str(ctx["pending_key"]),
                     item_id=item.item_id,
                     title=item.display_name,
@@ -1263,6 +1351,8 @@ class L4D2MapMirrorPlugin(Star):
                     f"群主/管理员可 /上传地图 {item.item_id} 部署到服务器"
                 )
             await self._notify(umo, "\n".join(lines))
+            if record is not None and not private:
+                await self._maybe_auto_upload(umo, record, archive.path)
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -1378,8 +1468,9 @@ class L4D2MapMirrorPlugin(Star):
                 await self._notify(umo, f"❌ 合集《{title}》传{label}失败：{error}")
                 return
 
+            record: PendingMap | None = None
             if self.pending is not None:
-                self.pending.add(
+                record = self.pending.add(
                     group_id=str(ctx["pending_key"]),
                     item_id=parent_id,
                     title=title,
@@ -1398,6 +1489,8 @@ class L4D2MapMirrorPlugin(Star):
                 lines.append(f"⚠️ {archive.note}")
             lines.append(f"群主/管理员可 /上传地图 {parent_id} 部署到服务器")
             await self._notify(umo, "\n".join(lines))
+            if record is not None and not private:
+                await self._maybe_auto_upload(umo, record, archive.path)
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -1419,6 +1512,30 @@ class L4D2MapMirrorPlugin(Star):
     # ------------------------------------------------------------ 管理端部署
 
     # ------------------------------------------------------------ 管理端上传
+
+    async def _maybe_auto_upload(
+        self, umo: str, record: PendingMap, path: Path
+    ) -> None:
+        if not self.settings.auto_panel_upload:
+            return
+        if self.panel is None:
+            await self._notify(
+                umo, "⚠️ 自动上传已开启，但管理端未配置（panel_enabled/url/token）。"
+            )
+            return
+        try:
+            role = await self.panel.client.role()
+        except PanelError as exc:
+            await self._notify(umo, f"⚠️ 自动上传失败：{exc}")
+            return
+        if role != "admin":
+            await self._notify(
+                umo,
+                f"⚠️ 自动上传需要 admin 授权码，当前角色：{role or '未知'}。"
+                "已跳过，可手动 /上传地图。",
+            )
+            return
+        self._spawn_panel_upload(umo, record, path)
 
     def _spawn_panel_upload(self, umo: str, record: PendingMap, path: Path) -> None:
         task = asyncio.create_task(self._run_panel_upload(umo, record, path))

@@ -145,6 +145,7 @@ class Settings:
     panel_enabled: bool = False
     panel_url: str = ""
     panel_token: str = ""
+    auto_panel_upload: bool = False
     panel_after_upload: str = "hot_reload"
     panel_queue_position: str = "back"
     panel_queue_mode: str = "after_campaign"
@@ -234,6 +235,7 @@ class Settings:
             panel_enabled=_as_bool(data.get("panel_enabled"), False),
             panel_url=_as_str(data.get("panel_url")).rstrip("/"),
             panel_token=_as_str(data.get("panel_token")),
+            auto_panel_upload=_as_bool(data.get("auto_panel_upload"), False),
             panel_after_upload=_choice(
                 data.get("panel_after_upload"),
                 {"none", "hot_reload", "queue", "changelevel"},

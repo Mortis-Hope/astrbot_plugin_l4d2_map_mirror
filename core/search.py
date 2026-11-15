@@ -196,6 +196,7 @@ class WorkshopSearch:
         card_title_font = _font(22, bold=True)
         meta_font = _font(17)
         small_font = _font(15)
+        badge_font = _font(18, bold=True)
         footer_font = _font(16)
 
         draw.text((MARGIN, 22), f"创意工坊搜索：{query}", font=title_font, fill=TEXT)
@@ -235,6 +236,24 @@ class WorkshopSearch:
                     (px + 52, py + 44), "暂无预览", font=small_font, fill=MUTED
                 )
 
+            badge = str(index + 1)
+            radius = 17
+            bx, by = px + 5, py + 5
+            draw.ellipse(
+                (bx, by, bx + radius * 2, by + radius * 2),
+                fill=ACCENT,
+                outline=(15, 25, 35),
+                width=2,
+            )
+            bbox = draw.textbbox((0, 0), badge, font=badge_font)
+            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            draw.text(
+                (bx + radius - tw / 2, by + radius - th / 2 - bbox[1]),
+                badge,
+                font=badge_font,
+                fill=(15, 25, 35),
+            )
+
             tx = x + 232
             max_text_width = CARD_W - 232 - 18
             lines = _wrap(draw, item.title, card_title_font, max_text_width, 2)
@@ -255,7 +274,7 @@ class WorkshopSearch:
                 author = author[:-1]
             draw.text((tx, y + 129), f"作者 {author}", font=small_font, fill=MUTED)
 
-        footer = "发送 /解析 <工坊ID> 下载 · 发送 /搜索地图 <关键词> 继续搜"
+        footer = f"回复数字 1-{len(items)} 直接下载 · /搜索地图 继续搜 · /换一批 看下一批"
         draw.text(
             (MARGIN, height - FOOTER_H + 10), footer, font=footer_font, fill=MUTED
         )

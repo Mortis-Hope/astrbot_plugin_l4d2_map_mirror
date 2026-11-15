@@ -362,6 +362,12 @@
     "type": "string",
     "default": ""
   },
+  "auto_panel_upload": {
+    "description": "自动上传管理端",
+    "hint": "开启后第一段发完群文件自动上传并热重载；必须填 panel_token，且需要 admin 授权码。",
+    "type": "bool",
+    "default": false
+  },
   "panel_after_upload": {
     "description": "上传成功后做什么",
     "hint": "hot_reload=自动热重载地图；none=只上传，手动去面板点热重载。热重载需要 admin 授权码。",
