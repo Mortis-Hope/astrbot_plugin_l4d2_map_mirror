@@ -206,7 +206,7 @@ class Settings:
             send_file_to_group=_as_bool(data.get("send_file_to_group"), True),
             send_file_max_mb=_as_int(data.get("send_file_max_mb"), 1024, 1, 4096),
             group_file_folder=_as_str(data.get("group_file_folder")),
-            upload_timeout=_as_int(data.get("upload_timeout"), 900, 30, 3600),
+            upload_timeout=max(1, _as_int(data.get("upload_timeout"), 900)),
             upload_notify=_as_bool(data.get("upload_notify"), True),
             require_at=_as_bool(data.get("require_at"), True),
             auto_link_enabled=_as_bool(data.get("auto_link_enabled"), False),

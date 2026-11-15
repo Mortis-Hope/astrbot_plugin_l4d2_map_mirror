@@ -10,7 +10,7 @@ help: |
   /解析 只看 <链接/ID>
   /搜索地图 <地图名>
   /换一批
-version: 1.11.8
+version: 1.11.9
 author: ATRI
 repo: https://github.com/Mortis-Hope/astrbot_plugin_l4d2_map_mirror
 astrbot_version: ">=4.24.0"

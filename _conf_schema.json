@@ -219,13 +219,8 @@
   },
   "upload_timeout": {
     "description": "上传超时（秒）",
-    "hint": "大文件上传慢，超时后放弃并提示。默认 900 秒",
+    "hint": "按需填写，不限制范围。大文件上传慢，超时后放弃并提示；默认 900 秒。",
     "type": "int",
-    "slider": {
-      "min": 30,
-      "max": 3600,
-      "step": 30
-    },
     "default": 900
   },
   "upload_notify": {
